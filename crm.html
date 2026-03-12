@@ -3128,7 +3128,7 @@ function openModalJugador(id) {
   openModal('modalJugador');
 }
 
-function guardarJugador() {
+async function guardarJugador() {
   const nombre = document.getElementById('jNombre').value.trim();
   const apellido = document.getElementById('jApellido').value.trim();
   const puesto = document.getElementById('jPuesto').value;
@@ -5498,21 +5498,10 @@ function init() {
   initSemana();
 }
 
-// Auto-login si hay sesión guardada
-window.addEventListener('DOMContentLoaded', () => {
-  loadDB();
-  cargarDemoData();
-  // Auth handled by Supabase — loadDB checks session
+// Auto-login via Supabase session
+window.addEventListener('DOMContentLoaded', async () => {
   await loadDB();
   showCrmApp();
-  return;
-  if (false) {
-  // Mostrar login
-  document.getElementById('crmLoginScreen').style.display = 'flex';
-  document.getElementById('crmApp').style.display = 'none';
-  document.getElementById('crmLoginPw').addEventListener('keydown', e => {
-    if (e.key === 'Enter') crmHandleLogin();
-  });
 });
 
 
@@ -6213,7 +6202,7 @@ function togglePlanMulti() {
   // Legacy — no-op in simplified model
 }
 
-function guardarActividad() {
+async function guardarActividad() {
   const jugadorVal = document.getElementById('planJugadorSel').value || '__plantel__';
   const nombre = document.getElementById('planNombre').value.trim();
   const fecha = document.getElementById('planFecha').value;
@@ -6497,7 +6486,7 @@ function editarComunicado(id) {
   openModal('modalComunicado');
 }
 
-function guardarComunicado() {
+async function guardarComunicado() {
   const titulo = document.getElementById('comTitulo').value.trim();
   const mensaje = document.getElementById('comMensaje').value.trim();
   if (!titulo || !mensaje) { showToast('Título y mensaje son requeridos', 'error'); return; }
@@ -7984,7 +7973,7 @@ function toggleVideoTipo() {
   if (row) row.style.display = tipo === 'particular' ? 'block' : 'none';
 }
 
-function guardarVideo() {
+async function guardarVideo() {
   const titulo = document.getElementById('vidTitulo').value.trim();
   const url = document.getElementById('vidUrl').value.trim();
   if (!titulo) { showToast('El título es requerido', 'error'); return; }
