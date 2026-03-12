@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Squadra — Portal del Jugador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --card: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8edf5;
+    --muted: #6b7a96;
+    --muted2: #4a566e;
+    --accent: #F5C518;
+    --accent2: #e8b800;
+    --blue: #1B3A6B;
+    --blue2: #2a52a0;
+    --verde: #22c55e;
+    --rojo: #ef4444;
+    --naranja: #f97316;
+    --font-h: 'Barlow Condensed', sans-serif;
+    --font: 'Barlow', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* ── LOGIN ── */
+  #loginScreen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+    background: radial-gradient(ellipse at 30% 20%, rgba(27,58,107,0.4) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(245,197,24,0.08) 0%, transparent 50%),
+                var(--bg);
+  }
+  .login-box {
+    width: 100%; max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 36px 32px;
+  }
+  .login-logo {
+    text-align: center; margin-bottom: 28px;
+  }
+  .login-logo .s-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: var(--accent); display: inline-flex;
+    align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 28px;
+    color: var(--bg); font-weight: 800; margin-bottom: 12px;
+  }
+  .login-logo h1 {
+    font-family: var(--font-h); font-size: 28px;
+    font-weight: 800; letter-spacing: 3px;
+    color: #fff; text-transform: uppercase;
+  }
+  .login-logo p { font-size: 12px; color: var(--muted); letter-spacing: 1px; margin-top: 3px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .form-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 11px 14px; color: var(--text);
+    font-family: var(--font); font-size: 15px; outline: none;
+    transition: border-color .2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-group { margin-bottom: 16px; }
+  .btn-login {
+    width: 100%; background: var(--accent); color: var(--bg);
+    border: none; border-radius: 8px; padding: 13px;
+    font-family: var(--font-h); font-size: 17px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    transition: background .2s; margin-top: 8px;
+  }
+  .btn-login:hover { background: var(--accent2); }
+  .login-error {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171; border-radius: 8px; padding: 10px 14px;
+    font-size: 13px; margin-top: 12px; display: none;
+  }
+
+  /* ── APP SHELL — responsive sidebar + mobile bottom nav ── */
+  #appShell { display: none; }
+
+  /* ── SIDEBAR (desktop) ── */
+  .app-layout {
+    display: flex; min-height: 100vh;
+  }
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0;
+    z-index: 100; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  .sidebar-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 20px; font-weight: 800; color: var(--bg);
+    flex-shrink: 0;
+  }
+  .sidebar-brand { font-family: var(--font-h); font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fff; }
+  .sidebar-player {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--blue2); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 20px; font-weight: 800; color: #fff;
+    margin-bottom: 10px;
+  }
+  .sidebar-player-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .sidebar-player-meta { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .sidebar-nav { flex: 1; padding: 10px 8px; }
+  .sidebar-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    color: var(--muted); font-size: 14px; font-weight: 500;
+    transition: all .15s; margin-bottom: 2px; border: none;
+    background: transparent; width: 100%; text-align: left;
+    font-family: var(--font);
+  }
+  .sidebar-nav-item:hover { background: var(--card); color: var(--text); }
+  .sidebar-nav-item.active { background: rgba(245,197,24,0.1); color: var(--accent); font-weight: 600; }
+  .sidebar-nav-item .nav-icon { font-size: 18px; flex-shrink: 0; }
+  .sidebar-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn-logout {
+    width: 100%; background: transparent; border: 1px solid var(--border2);
+    color: var(--muted); border-radius: 6px; padding: 8px;
+    font-size: 12px; cursor: pointer; font-family: var(--font);
+    transition: all .2s;
+  }
+  .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  /* ── MAIN CONTENT (desktop) ── */
+  .main-area {
+    flex: 1; margin-left: 220px;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .content {
+    flex: 1; padding: 24px 28px;
+    max-width: 780px; width: 100%;
+  }
+
+  /* ── MOBILE ── */
+  .topbar {
+    display: none;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 16px; height: 52px;
+    align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 8px; }
+  .topbar-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 16px; font-weight: 800; color: var(--bg);
+  }
+  .topbar-name { font-family: var(--font-h); font-size: 16px; font-weight: 700; letter-spacing: 1px; color: #fff; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .topbar-player { font-size: 12px; color: var(--muted); }
+  .topbar-player span { color: var(--text); font-weight: 600; }
+
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; padding: 8px 4px;
+    cursor: pointer; transition: all .15s; border: none;
+    background: transparent; color: var(--muted); font-family: var(--font);
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .nav-icon { font-size: 18px; line-height: 1; }
+  .nav-btn .nav-label { font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main-area { margin-left: 0; }
+    .topbar { display: flex; }
+    .bottom-nav { display: flex; }
+    .content { padding: 16px 14px 80px; max-width: 100%; }
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header { margin-bottom: 20px; }
+  .section-title {
+    font-family: var(--font-h); font-size: 26px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase; color: #fff;
+  }
+  .section-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: var(--font-h); font-size: 15px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: #fff;
+    margin-bottom: 4px;
+  }
+  .card-meta { font-size: 12px; color: var(--muted); }
+
+
+  /* ── DASHBOARD ── */
+  .dash-hero {
+    background: linear-gradient(135deg, var(--blue) 0%, #0f2347 100%);
+    border: 1px solid rgba(27,58,107,0.6);
+    border-radius: 14px; padding: 24px 20px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 18px;
+    position: relative; overflow: hidden;
+  }
+  .dash-hero::before {
+    content: '🏉'; position: absolute; right: -10px; bottom: -20px;
+    font-size: 100px; opacity: 0.06; transform: rotate(-20deg);
+  }
+  .dash-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(245,197,24,0.15);
+    border: 2px solid rgba(245,197,24,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 26px; font-weight: 800;
+    color: var(--accent); flex-shrink: 0;
+  }
+  .dash-hero-info {}
+  .dash-hero-name {
+    font-family: var(--font-h); font-size: 26px; font-weight: 800;
+    letter-spacing: 1px; color: #fff; text-transform: uppercase;
+    line-height: 1.1;
+  }
+  .dash-hero-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .dash-hero-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .dash-tag {
+    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
+    background: rgba(245,197,24,0.12); color: var(--accent);
+    border: 1px solid rgba(245,197,24,0.25); letter-spacing: 0.5px;
+  }
+  .dash-stats {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    margin-bottom: 16px;
+  }
+  .dash-stat {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .dash-stat-val {
+    font-family: var(--font-h); font-size: 32px; font-weight: 800;
+    color: var(--accent); line-height: 1; margin-bottom: 4px;
+  }
+  .dash-stat-val span { font-size: 14px; color: var(--muted); font-family: var(--font); font-weight: 400; }
+  .dash-stat-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .dash-week {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .dash-week-title {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+  }
+  .dash-days { display: flex; gap: 6px; }
+  .dash-day {
+    flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px;
+    border: 1px solid var(--border2); background: var(--surface);
+  }
+  .dash-day.hoy { border-color: var(--accent); background: rgba(245,197,24,0.08); }
+  .dash-day.libre { opacity: 0.5; }
+  .dash-day-nombre { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .dash-day-icon { font-size: 16px; margin-bottom: 3px; }
+  .dash-day-label { font-size: 9px; color: var(--muted); font-weight: 600; }
+  .dash-day.hoy .dash-day-nombre { color: var(--accent); }
+  .dash-day.hoy .dash-day-label { color: var(--accent); }
+  .dash-proximo {
+    background: rgba(245,197,24,0.06); border: 1px solid rgba(245,197,24,0.2);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .dash-proximo-icon { font-size: 28px; flex-shrink: 0; }
+  .dash-proximo-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .dash-proximo-rival { font-family: var(--font-h); font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+  .dash-proximo-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .dash-wellness-hoy {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dash-wellness-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .dash-wellness-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn-wellness-now {
+    background: var(--accent); color: var(--bg); border: none;
+    border-radius: 7px; padding: 8px 14px; font-family: var(--font-h);
+    font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    transition: background .2s;
+  }
+  .btn-wellness-now:hover { background: var(--accent2); }
+
+  /* ── SEMANA ── */
+  .week-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .week-nav-btn {
+    background: var(--surface); border: 1px solid var(--border2);
+    color: var(--text); border-radius: 6px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; transition: all .15s;
+  }
+  .week-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .week-label { font-family: var(--font-h); font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .dia-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 8px; overflow: hidden;
+  }
+  .dia-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  .dia-nombre {
+    font-family: var(--font-h); font-size: 14px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .dia-fecha { font-size: 12px; color: var(--muted); }
+  .dia-badge {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-entrenamiento { background: rgba(27,58,107,0.5); color: #7bafd4; border: 1px solid rgba(27,58,107,0.8); }
+  .badge-partido { background: rgba(245,197,24,0.1); color: var(--accent); border: 1px solid rgba(245,197,24,0.3); }
+  .badge-libre { background: rgba(107,122,150,0.1); color: var(--muted); border: 1px solid var(--border); }
+  .dia-actividades { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .act-item {
+    background: var(--surface); border-radius: 7px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .act-icon { font-size: 16px; flex-shrink: 0; }
+  .act-nombre { font-size: 13px; font-weight: 600; color: var(--text); }
+  .act-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .partido-banner {
+    margin: 0 14px 12px;
+    background: rgba(245,197,24,0.08);
+    border: 1px solid rgba(245,197,24,0.2);
+    border-radius: 8px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ── WELLNESS ── */
+  .wellness-date {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wellness-date-label { font-size: 13px; color: var(--muted); }
+  .wellness-date-val { font-family: var(--font-h); font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .wellness-metric { margin-bottom: 20px; }
+  .wellness-metric-label {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .wellness-scale {
+    display: flex; gap: 6px;
+  }
+  .scale-btn {
+    flex: 1; aspect-ratio: 1; border-radius: 8px;
+    border: 2px solid var(--border2); background: var(--card);
+    color: var(--muted); font-family: var(--font-h); font-size: 16px;
+    font-weight: 700; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scale-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .scale-btn.selected { border-color: var(--accent); background: rgba(245,197,24,0.12); color: var(--accent); }
+  .wellness-already {
+    background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 16px;
+  }
+  .btn-primary {
+    width: 100%; background: var(--accent); color: var(--bg);
+    border: none; border-radius: 8px; padding: 13px;
+    font-family: var(--font-h); font-size: 17px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary {
+    background: transparent; border: 1px solid var(--border2);
+    color: var(--text); border-radius: 8px; padding: 10px 16px;
+    font-family: var(--font); font-size: 14px; cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── PESOS ── */
+  .peso-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .peso-row:last-child { border-bottom: none; }
+  .peso-ejercicio { font-size: 14px; font-weight: 600; }
+  .peso-valor {
+    font-family: var(--font-h); font-size: 22px; font-weight: 800;
+    color: var(--accent); letter-spacing: 1px;
+  }
+  .peso-fecha { font-size: 11px; color: var(--muted); margin-top: 1px; text-align: right; }
+  .btn-agregar-peso {
+    width: 100%; background: var(--surface); border: 1px dashed var(--border2);
+    color: var(--muted); border-radius: 8px; padding: 12px;
+    font-family: var(--font); font-size: 14px; cursor: pointer;
+    transition: all .2s; margin-top: 8px;
+  }
+  .btn-agregar-peso:hover { border-color: var(--accent); color: var(--accent); }
+  .peso-form {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 16px; margin-top: 8px; display: none;
+  }
+  .form-row { display: flex; gap: 10px; }
+  .form-input-sm {
+    flex: 1; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 7px; padding: 9px 12px; color: var(--text);
+    font-family: var(--font); font-size: 14px; outline: none;
+  }
+  .form-input-sm:focus { border-color: var(--accent); }
+
+  /* ── VIDEOS ── */
+  .video-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+  }
+  .video-thumb {
+    width: 100%; height: 160px; background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; position: relative; cursor: pointer;
+    text-decoration: none;
+  }
+  .video-thumb-img { width: 100%; height: 100%; object-fit: cover; }
+  .video-play-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; background: rgba(0,0,0,0.3);
+    transition: background .2s;
+  }
+  .video-thumb:hover .video-play-overlay { background: rgba(0,0,0,0.5); }
+  .play-btn {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(245,197,24,0.9); display: flex;
+    align-items: center; justify-content: center; font-size: 18px;
+  }
+  .video-info { padding: 12px 14px; }
+  .video-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .video-meta { font-size: 12px; color: var(--muted); }
+  .video-obs {
+    font-size: 12px; color: var(--muted); margin-top: 8px;
+    padding-top: 8px; border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .dest-badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-top: 6px;
+  }
+  .dest-todos { background: rgba(27,58,107,0.4); color: #7bafd4; }
+  .dest-forwards { background: rgba(234,88,12,0.15); color: #fb923c; }
+  .dest-backs { background: rgba(6,182,212,0.15); color: #22d3ee; }
+  .dest-individual { background: rgba(139,92,246,0.15); color: #a78bfa; }
+
+
+  /* ── GYM CARDS ── */
+  .gym-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  }
+  .gym-card-hoy { border-color: rgba(245,197,24,0.3); }
+  .gym-card-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 10px; gap: 10px;
+  }
+  .gym-card-dia { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .gym-card-titulo { font-size: 15px; font-weight: 700; color: var(--text); }
+  .gym-bloques { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .gym-bloque {
+    background: var(--surface); border-radius: 8px; padding: 10px 12px;
+    border-left: 3px solid var(--blue2);
+  }
+  .gym-bloque-nombre { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .gym-nota-dt {
+    font-size: 12px; color: var(--muted); margin-top: 10px;
+    padding: 8px 10px; background: rgba(27,58,107,0.2);
+    border-radius: 6px; border-left: 2px solid var(--blue2); line-height: 1.5;
+  }
+
+  /* ── COMUNICADOS ── */
+  .com-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .com-card.fijado { border-left: 3px solid var(--accent); }
+  .com-titulo {
+    font-family: var(--font-h); font-size: 16px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase; color: #fff;
+    margin-bottom: 6px;
+  }
+  .com-cuerpo { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+  .com-meta { font-size: 11px; color: var(--muted2); }
+
+  /* ── GYM ── */
+  .gym-ejercicio {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
+  }
+  .gym-nombre { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .gym-specs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .gym-spec {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px;
+    color: var(--muted); font-weight: 600;
+  }
+  .gym-spec span { color: var(--accent); }
+  .gym-nota { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 16px 16px 0 0;
+    border: 1px solid var(--border2); padding: 24px 20px 32px;
+    width: 100%; max-width: 480px;
+  }
+  .modal-title {
+    font-family: var(--font-h); font-size: 20px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+  /* ── WELLNESS HISTORY ── */
+  .wellness-history { margin-top: 20px; }
+  .wellness-history-title {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+  }
+  .wh-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .wh-row:last-child { border-bottom: none; }
+  .wh-fecha { font-size: 12px; color: var(--muted); }
+  .wh-chips { display: flex; gap: 6px; }
+  .wh-chip {
+    font-size: 11px; font-weight: 600; padding: 2px 7px;
+    border-radius: 4px; background: var(--card);
+    border: 1px solid var(--border2); color: var(--muted);
+  }
+  .wh-chip.ok { color: var(--verde); border-color: rgba(34,197,94,0.3); }
+  .wh-chip.warn { color: var(--naranja); border-color: rgba(249,115,22,0.3); }
+  .wh-chip.bad { color: var(--rojo); border-color: rgba(239,68,68,0.3); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="s-icon">S</div>
+      <h1>Squadra</h1>
+      <p>Portal del Jugador</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="loginEmail" placeholder="tu@email.com"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPw').focus()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" type="password" id="loginPw" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')handleLogin()">
+    </div>
+    <button class="btn-login" onclick="handleLogin()">Ingresar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="appShell">
+<div class="app-layout">
+
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-icon">S</div>
+      <div class="sidebar-brand">SQUADRA</div>
+    </div>
+    <div class="sidebar-player">
+      <div class="sidebar-avatar" id="sidebarAvatar">—</div>
+      <div class="sidebar-player-name" id="sidebarNombre">—</div>
+      <div class="sidebar-player-meta" id="sidebarMeta">—</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" id="snav-dashboard" onclick="showSection('dashboard',this)">
+        <span class="nav-icon">🏠</span> Inicio
+      </button>
+      <button class="sidebar-nav-item" id="snav-semana" onclick="showSection('semana',this)">
+        <span class="nav-icon">📅</span> Mi Semana
+      </button>
+      <button class="sidebar-nav-item" id="snav-videos" onclick="showSection('videos',this)">
+        <span class="nav-icon">🎥</span> Videos
+      </button>
+      <button class="sidebar-nav-item" id="snav-gym" onclick="showSection('gym',this)">
+        <span class="nav-icon">💪</span> Gimnasio
+      </button>
+      <button class="sidebar-nav-item" id="snav-pesos" onclick="showSection('pesos',this)">
+        <span class="nav-icon">🏋️</span> Pesos Máximos
+      </button>
+      <button class="sidebar-nav-item" id="snav-wellness" onclick="showSection('wellness',this)">
+        <span class="nav-icon">❤️</span> Wellness
+      </button>
+      <button class="sidebar-nav-item" id="snav-comunicados" onclick="showSection('comunicados',this)">
+        <span class="nav-icon">📢</span> Avisos
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="handleLogout()">← Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-area">
+
+    <!-- TOPBAR (mobile only) -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-icon">S</div>
+        <div class="topbar-name">Squadra</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-player">Hola, <span id="topbarNombre">—</span></div>
+        <button class="btn-logout" onclick="handleLogout()" style="padding:4px 8px;font-size:11px">Salir</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content" id="mainContent"></div>
+
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" id="nav-dashboard" onclick="showSection('dashboard',this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Inicio</span>
+      </button>
+      <button class="nav-btn" id="nav-semana" onclick="showSection('semana',this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Semana</span>
+      </button>
+      <button class="nav-btn" id="nav-videos" onclick="showSection('videos',this)">
+        <span class="nav-icon">🎥</span>
+        <span class="nav-label">Videos</span>
+      </button>
+      <button class="nav-btn" id="nav-gym" onclick="showSection('gym',this)">
+        <span class="nav-icon">💪</span>
+        <span class="nav-label">Gym</span>
+      </button>
+      <button class="nav-btn" id="nav-wellness" onclick="showSection('wellness',this)">
+        <span class="nav-icon">❤️</span>
+        <span class="nav-label">Wellness</span>
+      </button>
+      <button class="nav-btn" id="nav-comunicados" onclick="showSection('comunicados',this)">
+        <span class="nav-icon">📢</span>
+        <span class="nav-label">Avisos</span>
+      </button>
+    </nav>
+
+  </div><!-- /main-area -->
+</div><!-- /app-layout -->
+</div><!-- /appShell -->
+
+<!-- ═══ MODAL PESO ═══ -->
+<div class="modal-bg" id="modalPeso">
+  <div class="modal">
+    <div class="modal-title">Registrar Peso Máximo</div>
+    <div class="form-group">
+      <label class="form-label">Ejercicio</label>
+      <input class="form-input" id="pesoEjercicio" placeholder="Ej: Sentadilla, Press banca...">
+    </div>
+    <div class="form-row" style="gap:10px;">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Peso (kg)</label>
+        <input class="form-input" type="number" id="pesoKg" placeholder="100" min="1" max="400">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Fecha</label>
+        <input class="form-input" type="date" id="pesoFecha">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota (opcional)</label>
+      <input class="form-input" id="pesoNota" placeholder="Ej: con cinturón, PR personal...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('modalPeso')">Cancelar</button>
+      <button class="btn-primary" style="flex:2" onclick="guardarPeso()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Local date helper (avoids UTC timezone shift) ──
+function fechaLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// ═══════════════════════════════════════════════
+// DATA — Supabase backend
+// ═══════════════════════════════════════════════
+
+const SUPABASE_URL  = 'https://ezqqomzkmoousrhkdbob.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXFvbXprbW9vdXNyaGtkYm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDk2OTEsImV4cCI6MjA4ODkyNTY5MX0.HKGW-vwY7sxoybakwST3KOoh2UgCq7kdURjiZwGRbYU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentPlayer = null;
+let currentClubId = null;
+let crmData = { jugadores: [], actividades: [], partidos: [], comunicados: [], videos: [], semanaTipo: { dias: [], periodos: [] } };
+let portalData = { wellness: [], pesos: [] };
+let currentSection = 'semana';
+let semanaOffset = 0;
+
+// ── Auth ──
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw    = document.getElementById('loginPw').value.trim();
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pw) { showError('Completá email y contraseña.'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+
+  if (error || !data.user) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+    showError('Email o contraseña incorrectos.');
+    return;
+  }
+
+  // Verify this is a player (not staff)
+  const { data: jugador } = await sb
+    .from('jugadores')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (!jugador) {
+    // Could be staff — redirect to CRM
+    await sb.auth.signOut();
+    if (btn) { btn.disabled = false; btn.textContent = 'Ingresar'; }
+    showError('Este acceso es solo para jugadores. El staff ingresa desde el sistema de gestión.');
+    return;
+  }
+
+  currentPlayer = { id: jugador.id, nombre: jugador.nombre, apellido: jugador.apellido,
+    email: jugador.email, puesto: jugador.puesto, division: jugador.division,
+    fechaNac: jugador.fecha_nac, club_id: jugador.club_id };
+  currentClubId = jugador.club_id;
+
+  await loadCRMData();
+  showApp();
+}
+
+async function loadCRMData() {
+  const [
+    { data: actividades },
+    { data: partidos },
+    { data: comunicados },
+    { data: videos },
+    { data: semana_tipo },
+    { data: wellness },
+    { data: pesos },
+    { data: club },
+  ] = await Promise.all([
+    sb.from('actividades').select('*').eq('club_id', currentClubId),
+    sb.from('partidos').select('*').eq('club_id', currentClubId).order('fecha'),
+    sb.from('comunicados').select('*').eq('club_id', currentClubId).order('created_at', { ascending: false }),
+    sb.from('videos').select('*').eq('club_id', currentClubId),
+    sb.from('semana_tipo').select('*').eq('club_id', currentClubId).maybeSingle(),
+    sb.from('wellness').select('*').eq('jugador_id', currentPlayer.id).order('fecha', { ascending: false }),
+    sb.from('pesos_maximos').select('*').eq('jugador_id', currentPlayer.id),
+    sb.from('clubes').select('nombre').eq('id', currentClubId).single(),
+  ]);
+
+  crmData = {
+    jugadores: [],
+    actividades: (actividades || []).map(a => ({ id: a.id, nombre: a.nombre, tipo: a.tipo, fecha: a.fecha, jugadorId: a.jugador_id || '__plantel__', grupo: a.grupo, duracion: a.duracion, descripcion: a.descripcion, bloques: a.bloques || [] })),
+    partidos: (partidos || []).map(p => ({ id: p.id, rival: p.rival, fecha: p.fecha, hora: p.hora, estadio: p.estadio, condicion: p.condicion, division: p.division, estado: p.estado })),
+    comunicados: (comunicados || []).map(c => ({ id: c.id, titulo: c.titulo, mensaje: c.mensaje, tipo: c.tipo, fijado: c.fijado, creadoEn: c.created_at?.split('T')[0] })),
+    videos: (videos || []).map(v => ({ id: v.id, titulo: v.titulo, url: v.url, tipo: v.tipo, grupo: v.grupo, jugadorId: v.jugador_id })),
+    semanaTipo: semana_tipo ? { dias: semana_tipo.dias || [], periodos: semana_tipo.periodos || [] } : { dias: [], periodos: [] },
+    config: { clubNombre: club?.nombre || 'Club' },
+  };
+
+  portalData = {
+    wellness: (wellness || []).map(w => ({ id: w.id, fecha: w.fecha, sueno: w.sueno, energia: w.energia, dolor: w.dolor, mental: w.mental, notas: w.notas })),
+    pesos: (pesos || []).map(p => ({ id: p.id, ejercicio: p.ejercicio, peso: p.peso, fecha: p.fecha })),
+  };
+}
+
+function handleLogout() {
+  sb.auth.signOut();
+  currentPlayer = null;
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPw').value = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  document.getElementById('topbarNombre').textContent = currentPlayer.nombre;
+  const initials = (currentPlayer.nombre?.[0] || '') + (currentPlayer.apellido?.[0] || '');
+  const sideAvatar = document.getElementById('sidebarAvatar');
+  if (sideAvatar) sideAvatar.textContent = initials.toUpperCase();
+  const sideNombre = document.getElementById('sidebarNombre');
+  if (sideNombre) sideNombre.textContent = currentPlayer.nombre + ' ' + currentPlayer.apellido;
+  const sideMeta = document.getElementById('sidebarMeta');
+  if (sideMeta) sideMeta.textContent = (currentPlayer.puesto || 'Jugador') + ' · ' + (crmData.config?.clubNombre || 'Club');
+  showSection('dashboard', document.getElementById('nav-dashboard'));
+}
+
+// ── Auto-login ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: jugador } = await sb.from('jugadores').select('*').eq('email', session.user.email).single();
+    if (jugador) {
+      currentPlayer = { id: jugador.id, nombre: jugador.nombre, apellido: jugador.apellido, email: jugador.email, puesto: jugador.puesto, division: jugador.division, fechaNac: jugador.fecha_nac, club_id: jugador.club_id };
+      currentClubId = jugador.club_id;
+      await loadCRMData();
+      showApp();
+      return;
+    }
+  }
+  document.getElementById('loginScreen').style.display = 'flex';
+});
+
+// ── Navigation ──
+function showSection(section, el) {
+  currentSection = section;
+  // Sync bottom nav
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const mobileBtn = document.getElementById('nav-' + section);
+  if (mobileBtn) mobileBtn.classList.add('active');
+  // Sync sidebar
+  document.querySelectorAll('.sidebar-nav-item').forEach(b => b.classList.remove('active'));
+  const sideBtn = document.getElementById('snav-' + section);
+  if (sideBtn) sideBtn.classList.add('active');
+  renderSection(section);
+}
+
+function renderSection(section) {
+  const el = document.getElementById('mainContent');
+  if (section === 'dashboard')   el.innerHTML = renderDashboard();
+  else if (section === 'semana') el.innerHTML = renderSemana();
+  else if (section === 'videos') el.innerHTML = renderVideos();
+  else if (section === 'gym')    el.innerHTML = renderGym();
+  else if (section === 'pesos')  el.innerHTML = renderPesos();
+  else if (section === 'wellness') el.innerHTML = renderWellness();
+  else if (section === 'comunicados') el.innerHTML = renderComunicados();
+  el.scrollTop = 0;
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function calcularEdad(fechaNac) {
+  if (!fechaNac) return null;
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+function getTipoDia(dow, semanaTipo, enPeriodo) {
+  if (!enPeriodo) return { icon: '—', label: 'Sin plan', libre: true };
+  const dia = semanaTipo?.dias?.[dow];
+  if (!dia || dia.libre) return { icon: '😴', label: 'Libre', libre: true };
+  const acts = dia.actividades || [];
+  if (acts.length === 0) return { icon: '😴', label: 'Libre', libre: true };
+  const tipos = acts.map(a => a.tipo);
+  if (tipos.includes('gym') && tipos.includes('training')) return { icon: '🔥', label: 'Doble' };
+  if (tipos.includes('training')) return { icon: '🏉', label: 'Entreno' };
+  if (tipos.includes('gym')) return { icon: '💪', label: 'Gym' };
+  if (tipos.includes('fisio')) return { icon: '🏥', label: 'Fisio' };
+  if (tipos.includes('descanso')) return { icon: '😴', label: 'Descanso' };
+  return { icon: '📋', label: acts[0]?.nombre?.split(' ')[0] || 'Actividad' };
+}
+
+function renderDashboard() {
+  const crm = crmData;
+  const db = portalData;
+
+  const p = currentPlayer;
+  const edad = calcularEdad(p.fechaNac);
+  const initials = ((p.nombre?.[0] || '') + (p.apellido?.[0] || '')).toUpperCase();
+  const clubNombre = crmData.config?.clubNombre || 'Club';
+
+  // Stats — partidos jugados (from equipos)
+  const equipos = (crm?.equipos || []).filter(e => e.jugadores?.includes(p.id));
+  const partidosJugados = equipos.length;
+  const totalPartidos = (crm?.partidos || []).filter(pt => pt.division === p.division && pt.estado === 'jugado').length;
+
+  // Minutos acumulados (from statsJugadores)
+  let minutosAcum = 0;
+  (crm?.partidos || []).forEach(pt => {
+    const stats = pt.statsJugadores?.find(s => s.jugadorId === p.id);
+    if (stats?.minutos) minutosAcum += parseInt(stats.minutos) || 0;
+  });
+
+  // Próximo partido
+  const hoyStr = fechaLocal();
+  const proximoPartido = (crm?.partidos || [])
+    .filter(pt => pt.fecha >= hoyStr && pt.division === p.division && pt.estado !== 'jugado')
+    .sort((a,b) => a.fecha.localeCompare(b.fecha))[0];
+
+  // Semana tipo — días
+  const lunes = getLunesDeSemana(0);
+  const lunStr = dateToStr(lunes);
+  const domStr = dateToStr(new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6));
+  const periodos = crm?.semanaTipo?.periodos || [];
+  const enPeriodo = periodos.some(p => lunStr <= p.hasta && domStr >= p.desde);
+  const hoyDow = (new Date().getDay() + 6) % 7; // 0=lun
+
+  const DIAS_SHORT7 = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  const diasHTML = DIAS_SHORT7.map((d, i) => {
+    const tipo = getTipoDia(i, crm?.semanaTipo, enPeriodo);
+    const esHoy = i === hoyDow;
+    return `<div class="dash-day ${esHoy ? 'hoy' : ''} ${tipo.libre ? 'libre' : ''}">
+      <div class="dash-day-nombre">${d}</div>
+      <div class="dash-day-icon">${tipo.icon}</div>
+      <div class="dash-day-label">${tipo.label}</div>
+    </div>`;
+  }).join('');
+
+  // Wellness hoy
+  const wellnessHoy = (db.wellness || []).find(w => w.jugadorId === p.id && w.fecha === hoyStr);
+
+  // Próximo partido HTML
+  const proximoHTML = proximoPartido ? `
+    <div class="dash-proximo">
+      <div class="dash-proximo-icon">🏉</div>
+      <div>
+        <div class="dash-proximo-label">Próximo partido</div>
+        <div class="dash-proximo-rival">vs ${proximoPartido.rival}</div>
+        <div class="dash-proximo-meta">${formatFecha(proximoPartido.fecha)}${proximoPartido.hora ? ' · ' + proximoPartido.hora + 'hs' : ''}</div>
+      </div>
+    </div>` : '';
+
+  // Wellness CTA
+  const wellnessHTML = wellnessHoy
+    ? `<div class="dash-wellness-hoy">
+        <div>
+          <div class="dash-wellness-label">✅ Wellness completado</div>
+          <div class="dash-wellness-sub">😴 ${wellnessHoy.sueno} · ⚡ ${wellnessHoy.energia} · 💢 ${wellnessHoy.dolor} · 🧠 ${wellnessHoy.mental}</div>
+        </div>
+       </div>`
+    : `<div class="dash-wellness-hoy">
+        <div>
+          <div class="dash-wellness-label">❤️ Wellness de hoy</div>
+          <div class="dash-wellness-sub">Todavía no completaste tu estado del día</div>
+        </div>
+        <button class="btn-wellness-now" onclick="showSection('wellness', document.getElementById('snav-wellness'))">Completar</button>
+       </div>`;
+
+  return `
+    <div class="dash-hero">
+      <div class="dash-avatar">${initials}</div>
+      <div class="dash-hero-info">
+        <div class="dash-hero-name">${p.nombre} ${p.apellido}</div>
+        <div class="dash-hero-sub">${clubNombre}</div>
+        <div class="dash-hero-tags">
+          ${p.puesto ? `<span class="dash-tag">${p.puesto}</span>` : ''}
+          ${p.division ? `<span class="dash-tag">${p.division}</span>` : ''}
+          ${edad ? `<span class="dash-tag">${edad} años</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-stats">
+      <div class="dash-stat">
+        <div class="dash-stat-val">${partidosJugados}<span>/${totalPartidos || '—'}</span></div>
+        <div class="dash-stat-label">Partidos jugados</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-val">${minutosAcum > 0 ? minutosAcum : '—'}<span>${minutosAcum > 0 ? ' min' : ''}</span></div>
+        <div class="dash-stat-label">Minutos en cancha</div>
+      </div>
+    </div>
+
+    <div class="dash-week">
+      <div class="dash-week-title">📅 Esta semana</div>
+      <div class="dash-days">${diasHTML}</div>
+    </div>
+
+    ${proximoHTML}
+    ${wellnessHTML}`;
+}
+
+// ═══════════════════════════════════════════════
+// SEMANA
+// ═══════════════════════════════════════════════
+const DIAS_LABELS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DIAS_SHORT  = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+const TIPOS_ACT = {
+  gym:        { icon: '💪', label: 'Gimnasio' },
+  training:   { icon: '🏉', label: 'Entrenamiento' },
+  destreza:   { icon: '🎯', label: 'Destreza' },
+  video:      { icon: '🎥', label: 'Video' },
+  nutricion:  { icon: '🥗', label: 'Nutrición' },
+  fisio:      { icon: '🏥', label: 'Fisioterapia' },
+  descanso:   { icon: '😴', label: 'Descanso' },
+  otro:       { icon: '📌', label: 'Actividad' },
+};
+
+function getLunesDeSemana(offset) {
+  const hoy = new Date();
+  const dow = hoy.getDay();
+  const diffToMon = (dow === 0 ? -6 : 1 - dow);
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() + diffToMon + offset * 7);
+  lunes.setHours(12,0,0,0); // noon to avoid DST/timezone shifts
+  return lunes;
+}
+
+function dateToStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderSemana() {
+  const crm = crmData;
+  if (!crm) return emptyState('📅', 'Sin datos del club cargados.');
+
+  const lunes = getLunesDeSemana(semanaOffset);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+
+  const fmt = d => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  const semLabel = `${fmt(lunes)} — ${fmt(domingo)}`;
+
+  // Get player's grupo (forwards/backs)
+  const puesto = (currentPlayer.puesto || '').toLowerCase();
+  const FORWARDS = ['pilar','hooker','segundo','ala','octavo'];
+  const esForward = FORWARDS.some(p => puesto.includes(p));
+  const grupoJugador = esForward ? 'forwards' : 'backs';
+
+  // Check semana tipo periods
+  const lunStr = dateToStr(lunes);
+  const periodos = crmData.semanaTipo?.periodos || [];
+  // Check if any day of this week falls within a semana tipo period
+  const domStr = dateToStr(new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6));
+  const enPeriodo = periodos.some(p => lunStr <= p.hasta && domStr >= p.desde);
+  const diasTipo = crmData.semanaTipo?.dias || [];
+
+  let diasHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate() + i);
+    const dateStr = dateToStr(dia);
+    const dow = i; // 0=lun
+
+    // Activities from semana tipo
+    let acts = [];
+    if (enPeriodo) {
+      const diaTipo = diasTipo[dow] || {};
+      if (!diaTipo.libre) {
+        acts = (diaTipo.actividades || []).filter(a => {
+          if (!a.grupo || a.grupo === 'todos') return true;
+          return a.grupo === grupoJugador;
+        });
+      }
+    }
+
+    // Extra activities from CRM actividades (specific to this player or plantel)
+    const actsExtra = (crmData.actividades || []).filter(a => {
+      if (a.fecha !== dateStr) return false;
+      if (a.jugadorId === '__plantel__') {
+        if (a.grupo && a.grupo !== 'todos') return a.grupo === grupoJugador;
+        return true;
+      }
+      if (a.jugadorId === currentPlayer.id) return true;
+      return false;
+    });
+
+    // Partido del día
+    const partido = (crmData.partidos || []).find(p => p.fecha === dateStr && p.division === currentPlayer.division);
+    const esHoy = dateStr === fechaLocal();
+
+    const tieneAlgo = acts.length > 0 || actsExtra.length > 0 || partido;
+    const badge = partido
+      ? `<span class="dia-badge badge-partido">🏉 Partido</span>`
+      : tieneAlgo
+      ? `<span class="dia-badge badge-entrenamiento">${acts.length + actsExtra.length} act.</span>`
+      : `<span class="dia-badge badge-libre">Libre</span>`;
+
+    let actsHTML = '';
+    [...acts, ...actsExtra].forEach(a => {
+      const tipo = TIPOS_ACT[a.tipo] || TIPOS_ACT.otro;
+      const dur = a.duracion ? `· ${a.duracion}'` : '';
+      const grupo = a.grupo && a.grupo !== 'todos' ? `· ${a.grupo === 'forwards' ? '💪 Fwds' : '⚡ Backs'}` : '';
+      actsHTML += `
+        <div class="act-item">
+          <span class="act-icon">${tipo.icon}</span>
+          <div>
+            <div class="act-nombre">${a.nombre}</div>
+            <div class="act-meta">${tipo.label} ${dur} ${grupo}</div>
+          </div>
+        </div>`;
+    });
+
+    let partidoHTML = '';
+    if (partido) {
+      partidoHTML = `
+        <div class="partido-banner">
+          <span style="font-size:20px">🏉</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--accent)">vs ${partido.rival}</div>
+            <div style="font-size:12px;color:var(--muted)">${partido.hora || '15:00'}hs${partido.estadio ? ' · ' + partido.estadio : ''}</div>
+          </div>
+        </div>`;
+    }
+
+    diasHTML += `
+    <div class="dia-card">
+      <div class="dia-header" onclick="toggleDia(this)">
+        <div>
+          <div class="dia-nombre" style="color:${esHoy ? 'var(--accent)' : '#fff'}">${DIAS_LABELS[i]}</div>
+          <div class="dia-fecha">${dia.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}</div>
+        </div>
+        ${badge}
+      </div>
+      ${tieneAlgo ? `<div class="dia-actividades">${partidoHTML}${actsHTML}</div>` : ''}
+    </div>`;
+  }
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Mi Semana</div>
+      <div class="section-sub">${currentPlayer.nombre} ${currentPlayer.apellido}${currentPlayer.puesto ? ' · ' + currentPlayer.puesto : ''}</div>
+    </div>
+    <div class="week-nav">
+      <button class="week-nav-btn" onclick="cambiarSemana(-1)">←</button>
+      <div class="week-label">${semLabel}</div>
+      <button class="week-nav-btn" onclick="cambiarSemana(1)">→</button>
+    </div>
+    ${diasHTML}`;
+}
+
+function toggleDia(el) {
+  const actsEl = el.nextElementSibling;
+  if (!actsEl) return;
+  actsEl.style.display = actsEl.style.display === 'none' ? '' : 'none';
+}
+
+function cambiarSemana(delta) {
+  semanaOffset += delta;
+  renderSection('semana');
+}
+
+// ═══════════════════════════════════════════════
+// VIDEOS
+// ═══════════════════════════════════════════════
+function renderVideos() {
+  const crm = crmData;
+  if (!crm) return emptyState('🎥', 'Sin datos del club.');
+
+  const puesto = (currentPlayer.puesto || '').toLowerCase();
+  const FORWARDS_PUESTOS = ['pilar','hooker','segundo','ala','octavo'];
+  const esForward = FORWARDS_PUESTOS.some(p => puesto.includes(p));
+  const grupoJugador = esForward ? 'forwards' : 'backs';
+
+  const videos = (crmData.videos || []).filter(v => {
+    if (v.audiencia && v.audiencia !== 'jugadores') return false;
+    if (v.tipo === 'particular') return v.jugadorId === currentPlayer.id;
+    if (v.grupo === 'forwards') return esForward;
+    if (v.grupo === 'backs') return !esForward;
+    return true; // 'todos'
+  }).sort((a,b) => (b.creadoEn||'').localeCompare(a.creadoEn||''));
+
+  if (!videos.length) return `
+    <div class="section-header">
+      <div class="section-title">Videos</div>
+      <div class="section-sub">Clips del cuerpo técnico</div>
+    </div>
+    ${emptyState('🎥', 'No tenés videos asignados todavía.')}`;
+
+  const destBadge = v => {
+    if (v.tipo === 'particular') return `<span class="dest-badge dest-individual">👤 Para vos</span>`;
+    if (v.grupo === 'forwards') return `<span class="dest-badge dest-forwards">💪 Forwards</span>`;
+    if (v.grupo === 'backs') return `<span class="dest-badge dest-backs">⚡ Backs</span>`;
+    return `<span class="dest-badge dest-todos">👥 Todo el plantel</span>`;
+  };
+
+  const getThumb = url => {
+    const yt = url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+    return null;
+  };
+
+  const cards = videos.map(v => {
+    const thumb = getThumb(v.url);
+    const thumbHTML = thumb
+      ? `<img class="video-thumb-img" src="${thumb}" onerror="this.style.display='none'">`
+      : `<span style="font-size:36px">🎥</span>`;
+    return `
+    <div class="video-card">
+      <a class="video-thumb" href="${v.url || '#'}" target="_blank">
+        ${thumbHTML}
+        <div class="video-play-overlay">
+          <div class="play-btn">▶</div>
+        </div>
+      </a>
+      <div class="video-info">
+        <div class="video-title">${v.titulo}</div>
+        <div class="video-meta">${v.creadoEn ? formatFecha(v.creadoEn) : ''}</div>
+        ${destBadge(v)}
+        ${v.observaciones ? `<div class="video-obs">${v.observaciones}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Videos</div>
+      <div class="section-sub">${videos.length} clip${videos.length !== 1 ? 's' : ''} asignado${videos.length !== 1 ? 's' : ''}</div>
+    </div>
+    ${cards}`;
+}
+
+// ═══════════════════════════════════════════════
+// GIMNASIO
+// ═══════════════════════════════════════════════
+function getGrupoJugador() {
+  const puesto = (currentPlayer.puesto || '').toLowerCase();
+  const FORWARDS_PUESTOS = ['pilar','hooker','segundo','tercera','ala','octavo','talonador','prop'];
+  return FORWARDS_PUESTOS.some(p => puesto.includes(p)) ? 'forwards' : 'backs';
+}
+
+function actividadEsParaJugador(a, grupoJugador) {
+  if (a.jugadorId === currentPlayer.id) return true;
+  if (a.jugadorId === '__plantel__' || !a.jugadorId) {
+    if (!a.grupo || a.grupo === 'todos') return true;
+    return a.grupo === grupoJugador;
+  }
+  return false;
+}
+
+function renderGym() {
+  const crm = crmData;
+  if (!crm) return emptyState('💪', 'Sin datos del club.');
+
+  const grupoJugador = getGrupoJugador();
+  const hoy = fechaLocal();
+
+  // ── Rutinas de esta semana (lunes a domingo) ──
+  const lunes = getLunesDeSemana(0);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  const lunStr = dateToStr(lunes);
+  const domStr = dateToStr(domingo);
+
+  // Get gym activities for this week from CRM actividades
+  const rutinasSemana = (crmData.actividades || []).filter(a => {
+    if (a.tipo !== 'gym') return false;
+    if (a.fecha < lunStr || a.fecha > domStr) return false;
+    return actividadEsParaJugador(a, grupoJugador);
+  }).sort((a,b) => a.fecha.localeCompare(b.fecha));
+
+  // Get gym activities from semana tipo
+  const periodos = crmData.semanaTipo?.periodos || [];
+  const enPeriodo = periodos.some(p => lunStr >= p.desde && lunStr <= p.hasta);
+  const diasTipo = crmData.semanaTipo?.dias || [];
+  let actsTipoGym = [];
+  if (enPeriodo) {
+    for (let i = 0; i < 7; i++) {
+      const dia = diasTipo[i] || {};
+      if (dia.libre) continue;
+      const gymActs = (dia.actividades || []).filter(a =>
+        a.tipo === 'gym' && (!a.grupo || a.grupo === 'todos' || a.grupo === grupoJugador)
+      );
+      gymActs.forEach(a => {
+        const fecha = new Date(lunes); fecha.setDate(lunes.getDate() + i);
+        actsTipoGym.push({ ...a, _dow: i, _fecha: fecha.toISOString().split('T')[0] });
+      });
+    }
+  }
+
+  // ── Render semana tipo gym ──
+  const tipoHTML = actsTipoGym.map(a => {
+    const bloquesHTML = renderBloques(a.bloques);
+    return `
+    <div class="gym-card">
+      <div class="gym-card-header">
+        <div>
+          <div class="gym-card-dia">${DIAS_LABELS[a._dow]}</div>
+          <div class="gym-card-titulo">💪 ${a.nombre}</div>
+        </div>
+        <span class="dest-badge dest-todos" style="align-self:flex-start">Semana tipo</span>
+      </div>
+      ${a.descripcion ? `<div class="gym-nota">${a.descripcion}</div>` : ''}
+      ${bloquesHTML}
+      ${a.notaDT ? `<div class="gym-nota-dt">📋 <strong>Nota del cuerpo técnico:</strong> ${a.notaDT}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── Render actividades gym esta semana ──
+  const semanaHTML = rutinasSemana.map(a => {
+    const esHoy = a.fecha === hoy;
+    const bloquesHTML = renderBloques(a.bloques);
+    const grupoBadge = a.grupo === 'forwards'
+      ? `<span class="dest-badge dest-forwards">💪 Forwards</span>`
+      : a.grupo === 'backs'
+      ? `<span class="dest-badge dest-backs">⚡ Backs</span>`
+      : a.jugadorId === currentPlayer.id
+      ? `<span class="dest-badge dest-individual">👤 Para vos</span>`
+      : `<span class="dest-badge dest-todos">👥 Todo el plantel</span>`;
+
+    return `
+    <div class="gym-card ${esHoy ? 'gym-card-hoy' : ''}">
+      <div class="gym-card-header">
+        <div>
+          <div class="gym-card-dia">${DIAS_LABELS[(new Date(a.fecha+'T12:00').getDay()+6)%7]}${esHoy ? ' · <span style="color:var(--accent)">HOY</span>' : ''}</div>
+          <div class="gym-card-titulo">💪 ${a.nombre}</div>
+        </div>
+        ${grupoBadge}
+      </div>
+      ${a.descripcion ? `<div class="gym-nota">${a.descripcion}</div>` : ''}
+      ${bloquesHTML}
+      ${a.notaDT ? `<div class="gym-nota-dt">📋 <strong>Nota:</strong> ${a.notaDT}</div>` : ''}
+      ${a.rpe ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">RPE esperado: <strong style="color:var(--text)">${a.rpe}/10</strong></div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── Últimas rutinas históricas (últimas 3, fuera de esta semana) ──
+  const anteriores = (crmData.actividades || []).filter(a => {
+    if (a.tipo !== 'gym') return false;
+    if (a.fecha >= lunStr) return false;
+    return actividadEsParaJugador(a, grupoJugador);
+  }).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 3);
+
+  const anterioresHTML = anteriores.length ? `
+    <div style="margin-top:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Rutinas anteriores</div>
+      ${anteriores.map(a => `
+        <div class="gym-card" style="opacity:0.7">
+          <div class="gym-card-header">
+            <div>
+              <div class="gym-card-dia">${formatFecha(a.fecha)}</div>
+              <div class="gym-card-titulo">💪 ${a.nombre}</div>
+            </div>
+          </div>
+          ${renderBloques(a.bloques)}
+        </div>`).join('')}
+    </div>` : '';
+
+  const nada = !tipoHTML && !semanaHTML;
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Gimnasio</div>
+      <div class="section-sub">Tu rutina · ${grupoJugador === 'forwards' ? '💪 Forwards' : '⚡ Backs'}</div>
+    </div>
+    ${tipoHTML}
+    ${semanaHTML}
+    ${nada ? emptyState('💪', 'No tenés rutina de gimnasio asignada todavía.<br><br>Tu preparador físico la cargará desde el sistema de gestión.') : ''}
+    ${anterioresHTML}`;
+}
+
+function renderBloques(bloques) {
+  if (!bloques || bloques.length === 0) return '';
+  return `<div class="gym-bloques">
+    ${bloques.filter(b => b.nombre).map(b => `
+      <div class="gym-bloque">
+        <div class="gym-bloque-nombre">${b.nombre}</div>
+        <div class="gym-specs">
+          ${b.series ? `<span class="gym-spec"><span>${b.series}</span> series</span>` : ''}
+          ${b.reps   ? `<span class="gym-spec"><span>${b.reps}</span> reps</span>` : ''}
+          ${b.duracion ? `<span class="gym-spec"><span>${b.duracion}</span> min</span>` : ''}
+          ${b.peso   ? `<span class="gym-spec"><span>${b.peso}</span> kg</span>` : ''}
+          ${b.descanso ? `<span class="gym-spec">⏱ <span>${b.descanso}</span>s</span>` : ''}
+        </div>
+        ${b.nota ? `<div class="gym-nota" style="margin-top:4px">${b.nota}</div>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// PESOS MÁXIMOS
+// ═══════════════════════════════════════════════
+function renderPesos() {
+  const db = portalData;
+  const pesos = (db.pesos || []).filter(p => p.jugadorId === currentPlayer.id)
+    .sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+
+  // Best per exercise
+  const mejores = {};
+  pesos.forEach(p => {
+    if (!mejores[p.ejercicio] || p.kg > mejores[p.ejercicio].kg) {
+      mejores[p.ejercicio] = p;
+    }
+  });
+
+  const mejoresHTML = Object.values(mejores).sort((a,b) => a.ejercicio.localeCompare(b.ejercicio)).map(p => `
+    <div class="peso-row" onclick="abrirCalculadora('${p.ejercicio.replace(/'/g,"\\'")}', ${p.kg})" style="cursor:pointer;">
+      <div>
+        <div class="peso-ejercicio">${p.ejercicio}</div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:2px">Tocar para ver % →</div>
+      </div>
+      <div style="text-align:right">
+        <div class="peso-valor">${p.kg} <span style="font-size:14px;color:var(--muted)">kg</span></div>
+        <div class="peso-fecha">${formatFecha(p.fecha)}</div>
+      </div>
+    </div>`).join('');
+
+  // History — last 10
+  const historyHTML = pesos.slice(0, 10).map(p => `
+    <div class="peso-row">
+      <div>
+        <div style="font-size:13px;font-weight:600">${p.ejercicio}</div>
+        <div style="font-size:11px;color:var(--muted)">${formatFecha(p.fecha)}</div>
+      </div>
+      <div style="font-family:var(--font-h);font-size:18px;font-weight:700;color:var(--text)">${p.kg} kg</div>
+    </div>`).join('');
+
+  // Calculator section
+  const calcHTML = `
+    <div class="card" style="margin-top:4px">
+      <div class="card-title" style="margin-bottom:12px">📊 Calculadora de porcentajes</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ingresá tu 1RM para calcular las cargas de trabajo.</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;">
+        <div style="flex:1">
+          <label class="form-label">Ejercicio</label>
+          <input class="form-input" id="calcEjercicio" placeholder="Ej: Sentadilla"
+            oninput="actualizarCalc()" list="calcEjercicioList">
+          <datalist id="calcEjercicioList">
+            ${Object.keys(mejores).map(e => `<option value="${e}">`).join('')}
+          </datalist>
+        </div>
+        <div style="width:100px">
+          <label class="form-label">1RM (kg)</label>
+          <input class="form-input" type="number" id="calc1RM" placeholder="100"
+            oninput="actualizarCalc()" min="1" max="500">
+        </div>
+      </div>
+      <div id="calcTabla"></div>
+    </div>`;
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Pesos Máximos</div>
+      <div class="section-sub">Tu historial personal</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">🏆 Mejores marcas</div>
+      ${Object.keys(mejores).length
+        ? mejoresHTML + '<div style="font-size:11px;color:var(--muted);margin-top:10px">Tocá un ejercicio para ver sus porcentajes.</div>'
+        : '<div style="font-size:13px;color:var(--muted)">Sin registros todavía.</div>'}
+      <button class="btn-agregar-peso" onclick="openModalPeso()">+ Registrar nuevo peso máximo</button>
+    </div>
+    ${calcHTML}
+    ${pesos.length > 0 ? `
+    <div class="card" style="margin-top:4px">
+      <div class="card-title" style="margin-bottom:12px">📋 Historial</div>
+      ${historyHTML}
+    </div>` : ''}`;
+}
+
+// ── Calculadora ──
+function abrirCalculadora(ejercicio, kg) {
+  const calcEj = document.getElementById('calcEjercicio');
+  const calc1RM = document.getElementById('calc1RM');
+  if (calcEj) calcEj.value = ejercicio;
+  if (calc1RM) calc1RM.value = kg;
+  actualizarCalc();
+  document.getElementById('calcTabla')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function actualizarCalc() {
+  const rm = parseFloat(document.getElementById('calc1RM')?.value);
+  const tablaEl = document.getElementById('calcTabla');
+  if (!tablaEl) return;
+  if (!rm || rm <= 0) { tablaEl.innerHTML = ''; return; }
+
+  const zonas = [
+    { pct: 100, label: 'Fuerza máxima',     reps: '1',    color: '#ef4444' },
+    { pct: 95,  label: 'Fuerza máxima',     reps: '1–2',  color: '#f97316' },
+    { pct: 90,  label: 'Fuerza máxima',     reps: '2–3',  color: '#f97316' },
+    { pct: 85,  label: 'Fuerza',            reps: '3–5',  color: '#eab308' },
+    { pct: 80,  label: 'Fuerza / Hipertrofia', reps: '5–6', color: '#eab308' },
+    { pct: 75,  label: 'Hipertrofia',       reps: '6–8',  color: '#22c55e' },
+    { pct: 70,  label: 'Hipertrofia',       reps: '8–12', color: '#22c55e' },
+    { pct: 65,  label: 'Resistencia muscular', reps: '12–15', color: '#3b82f6' },
+    { pct: 60,  label: 'Resistencia muscular', reps: '15–20', color: '#3b82f6' },
+    { pct: 50,  label: 'Calentamiento',     reps: '20+',  color: '#6b7280' },
+  ];
+
+  const rows = zonas.map(z => {
+    const peso = Math.round(rm * z.pct / 100 * 2) / 2; // round to 0.5
+    const barW = z.pct;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
+        <div style="width:38px;font-family:var(--font-h);font-size:16px;font-weight:800;color:${z.color};flex-shrink:0">${z.pct}%</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:12px;color:var(--muted)">${z.label}</span>
+            <span style="font-size:11px;color:var(--muted2)">${z.reps} reps</span>
+          </div>
+          <div style="background:var(--surface);border-radius:3px;height:4px;overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:${z.color};border-radius:3px;transition:width .3s"></div>
+          </div>
+        </div>
+        <div style="width:56px;text-align:right;font-family:var(--font-h);font-size:18px;font-weight:700;color:#fff;flex-shrink:0">${peso}<span style="font-size:11px;color:var(--muted);font-family:var(--font)"> kg</span></div>
+      </div>`;
+  }).join('');
+
+  tablaEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:12px;color:var(--muted)">1RM base</span>
+      <span style="font-family:var(--font-h);font-size:20px;font-weight:800;color:var(--accent)">${rm} kg</span>
+    </div>
+    ${rows}`;
+}
+
+function openModalPeso() {
+  document.getElementById('pesoEjercicio').value = '';
+  document.getElementById('pesoKg').value = '';
+  document.getElementById('pesoNota').value = '';
+  document.getElementById('pesoFecha').value = fechaLocal();
+  document.getElementById('modalPeso').classList.add('open');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function guardarPeso() {
+  const ejercicio = document.getElementById('pesoEjercicio').value.trim();
+  const kg = parseFloat(document.getElementById('pesoKg').value);
+  const fecha = document.getElementById('pesoFecha').value;
+  const nota = document.getElementById('pesoNota').value.trim();
+
+  if (!ejercicio || !kg || !fecha) {
+    alert('Completá ejercicio, peso y fecha.'); return;
+  }
+
+  const { data: pRow } = await sb.from('pesos_maximos').upsert({
+    club_id: currentClubId, jugador_id: currentPlayer.id,
+    ejercicio, peso: kg, fecha
+  }, { onConflict: 'jugador_id,ejercicio' }).select().single();
+  if (pRow) {
+    const existing = portalData.pesos.find(p => p.ejercicio === ejercicio);
+    if (existing) { existing.peso = kg; existing.fecha = fecha; }
+    else portalData.pesos.push({ id: pRow.id, ejercicio, peso: kg, fecha });
+  }
+  closeModal('modalPeso');
+  renderSection('pesos');
+}
+
+// ═══════════════════════════════════════════════
+// WELLNESS
+// ═══════════════════════════════════════════════
+let wellnessValues = { sueno: null, energia: null, dolor: null, mental: null };
+
+function renderWellness() {
+  const db = portalData;
+  const hoy = fechaLocal();
+  const yaCompleto = (portalData.wellness || []).find(w => w.fecha === hoy);
+
+  // History
+  const historial = (db.wellness || [])
+    .filter(w => w.jugadorId === currentPlayer.id)
+    .sort((a,b) => b.fecha.localeCompare(a.fecha))
+    .slice(0, 7);
+
+  const historialHTML = historial.length ? `
+    <div class="wellness-history">
+      <div class="wellness-history-title">Últimos registros</div>
+      ${historial.map(w => {
+        const chips = [
+          { label: `😴 ${w.sueno}`, val: w.sueno, type: 'sueno', low: 5 },
+          { label: `⚡ ${w.energia}`, val: w.energia, type: 'energia', low: 4 },
+          { label: `💢 ${w.dolor}`, val: w.dolor, type: 'dolor', high: 6 },
+          { label: `🧠 ${w.mental}`, val: w.mental, type: 'mental', low: 4 },
+        ].map(c => {
+          let cls = 'ok';
+          if (c.low && c.val <= c.low) cls = 'warn';
+          if (c.high && c.val >= c.high) cls = 'warn';
+          if (c.low && c.val <= 3) cls = 'bad';
+          if (c.high && c.val >= 8) cls = 'bad';
+          return `<span class="wh-chip ${cls}">${c.label}</span>`;
+        }).join('');
+        return `<div class="wh-row"><div class="wh-fecha">${formatFecha(w.fecha)}</div><div class="wh-chips">${chips}</div></div>`;
+      }).join('')}
+    </div>` : '';
+
+  if (yaCompleto) return `
+    <div class="section-header">
+      <div class="section-title">Wellness</div>
+      <div class="section-sub">Tu estado de hoy</div>
+    </div>
+    <div class="wellness-already">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="font-size:15px;font-weight:600;color:var(--verde)">Ya completaste el wellness de hoy</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">${formatFecha(hoy)}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+        <span class="wh-chip">😴 ${yaCompleto.sueno}</span>
+        <span class="wh-chip">⚡ ${yaCompleto.energia}</span>
+        <span class="wh-chip">💢 ${yaCompleto.dolor}</span>
+        <span class="wh-chip">🧠 ${yaCompleto.mental}</span>
+      </div>
+    </div>
+    ${historialHTML}`;
+
+  const metrica = (id, label, icon, desc) => {
+    const vals = [1,2,3,4,5,6,7,8,9,10];
+    return `
+    <div class="wellness-metric">
+      <div class="wellness-metric-label">${icon} ${label} <span style="color:var(--muted);font-size:12px;font-weight:400">— ${desc}</span></div>
+      <div class="wellness-scale">
+        ${vals.map(v => `<button class="scale-btn" id="w_${id}_${v}" onclick="selectWellness('${id}',${v})">${v}</button>`).join('')}
+      </div>
+    </div>`;
+  };
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Wellness</div>
+      <div class="section-sub">¿Cómo llegás hoy?</div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Completá tu estado de hoy. Tu cuerpo técnico lo ve.</div>
+      ${metrica('sueno','Sueño','😴','horas / calidad')}
+      ${metrica('energia','Energía','⚡','nivel general')}
+      ${metrica('dolor','Dolor muscular','💢','intensidad')}
+      ${metrica('mental','Estado mental','🧠','ánimo y foco')}
+      <button class="btn-primary" onclick="guardarWellness()" style="margin-top:8px">Guardar wellness de hoy</button>
+    </div>
+    ${historialHTML}`;
+}
+
+function selectWellness(metrica, valor) {
+  wellnessValues[metrica] = valor;
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`w_${metrica}_${i}`);
+    if (btn) btn.classList.toggle('selected', i === valor);
+  }
+}
+
+async function guardarWellness() {
+  const { sueno, energia, dolor, mental } = wellnessValues;
+  if (!sueno || !energia || !dolor || !mental) {
+    alert('Completá todas las métricas antes de guardar.'); return;
+  }
+  const hoy = fechaLocal();
+  const { data: wRow } = await sb.from('wellness').upsert({
+    club_id: currentClubId, jugador_id: currentPlayer.id,
+    fecha: hoy, sueno, energia, dolor, mental
+  }, { onConflict: 'jugador_id,fecha' }).select().single();
+  if (wRow) {
+    portalData.wellness = portalData.wellness.filter(w => w.fecha !== hoy);
+    portalData.wellness.unshift({ id: wRow.id, fecha: hoy, sueno, energia, dolor, mental });
+  }
+  wellnessValues = { sueno: null, energia: null, dolor: null, mental: null };
+  renderSection('wellness');
+}
+
+// ═══════════════════════════════════════════════
+// COMUNICADOS
+// ═══════════════════════════════════════════════
+function renderComunicados() {
+  const crm = crmData;
+  if (!crm) return emptyState('📢', 'Sin datos del club.');
+
+  const comunicados = (crmData.comunicados || []).filter(c => {
+    if (c.audiencia === 'staff') return false;
+    // Filter by division/destinatarios
+    const dest = c.destinatarios || c.division || '';
+    if (dest && dest !== 'todos' && dest !== '' && dest !== currentPlayer.division) return false;
+    return true;
+  }).sort((a,b) => {
+    if (a.fijado && !b.fijado) return -1;
+    if (!a.fijado && b.fijado) return 1;
+    return (b.creadoEn||b.fecha||'').localeCompare(a.creadoEn||a.fecha||'');
+  });
+
+  if (!comunicados.length) return `
+    <div class="section-header">
+      <div class="section-title">Avisos</div>
+      <div class="section-sub">Comunicados del cuerpo técnico</div>
+    </div>
+    ${emptyState('📢', 'Sin comunicados por el momento.')}`;
+
+  const cards = comunicados.map(c => `
+    <div class="com-card ${c.fijado ? 'fijado' : ''}">
+      ${c.fijado ? '<div style="font-size:11px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📌 Fijado</div>' : ''}
+      <div class="com-titulo">${c.emoji || '📣'} ${c.titulo}</div>
+      <div class="com-cuerpo">${c.mensaje || c.cuerpo || ''}</div>
+      <div class="com-meta">${formatFecha(c.creadoEn || c.fecha)}</div>
+    </div>`).join('');
+
+  return `
+    <div class="section-header">
+      <div class="section-title">Avisos</div>
+      <div class="section-sub">${comunicados.length} comunicado${comunicados.length !== 1 ? 's' : ''}</div>
+    </div>
+    ${cards}`;
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function formatFecha(str) {
+  if (!str) return '';
+  const [y,m,d] = str.split('-');
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(d)} ${meses[parseInt(m)-1]} ${y}`;
+}
+
+function emptyState(icon, text) {
+  return `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-text">${text}</div></div>`;
+}
+
+// Close modal on backdrop click
+document.getElementById('modalPeso').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('modalPeso');
+});
+</script>
+</body>
+</html>

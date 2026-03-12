@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squadra — Gestión de Planteles Superiores</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --azul:   #0B1F3A;
+    --azul2:  #1B3A6B;
+    --dorado: #F5C518;
+    --gris:   #8A8F9A;
+    --blanco: #F4F2EE;
+    --borde:  rgba(255,255,255,0.07);
+    --rojo:   #ef4444;
+    --font-h: 'Bebas Neue', sans-serif;
+    --font:   'DM Sans', sans-serif;
+    --font-m: 'DM Mono', monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font); background: var(--azul); color: var(--blanco); overflow-x: hidden; }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(245,197,24,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,197,24,0.025) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 20px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background .3s;
+  }
+  nav.scrolled { background: rgba(11,31,58,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--borde); }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
+  .nav-logo-icon {
+    width: 34px; height: 34px; background: var(--dorado);
+    border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 20px; color: var(--azul);
+  }
+  .nav-logo-text { font-family: var(--font-h); font-size: 22px; letter-spacing: 3px; }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .btn-nav-login {
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    color: var(--gris); background: none; border: none; cursor: pointer;
+    transition: color .2s; padding: 8px 12px;
+  }
+  .btn-nav-login:hover { color: var(--blanco); }
+  .btn-nav-demo {
+    font-family: var(--font-m); font-size: 12px;
+    background: var(--dorado); color: var(--azul);
+    border: none; border-radius: 6px; padding: 9px 18px;
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: background .2s, transform .15s;
+  }
+  .btn-nav-demo:hover { background: #FFD740; transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; padding: 120px 48px 80px; position: relative;
+  }
+  #hero::after {
+    content: ''; position: absolute; top: -200px; right: -200px;
+    width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,197,24,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-family: var(--font-m); font-size: 11px; color: var(--dorado);
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 24px;
+    opacity: 0; animation: fadeUp .6s .2s forwards;
+  }
+  .hero-title {
+    font-family: var(--font-h); font-size: clamp(64px, 9vw, 128px);
+    line-height: 0.92; letter-spacing: 2px; max-width: 900px;
+    opacity: 0; animation: fadeUp .6s .35s forwards;
+  }
+  .hero-title em { font-style: normal; color: var(--dorado); }
+  .hero-sub {
+    font-size: 17px; font-weight: 300; color: rgba(244,242,238,0.6);
+    max-width: 520px; line-height: 1.7; margin-top: 28px;
+    opacity: 0; animation: fadeUp .6s .5s forwards;
+  }
+  .hero-sub strong { color: var(--blanco); font-weight: 500; }
+  .hero-ctas {
+    display: flex; align-items: center; gap: 16px; margin-top: 44px;
+    opacity: 0; animation: fadeUp .6s .65s forwards;
+  }
+  .btn-primary {
+    font-family: var(--font-m); font-size: 13px; font-weight: 500;
+    background: var(--dorado); color: var(--azul); border: none;
+    border-radius: 8px; padding: 14px 28px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: background .2s, transform .15s, box-shadow .2s;
+  }
+  .btn-primary:hover { background: #FFD740; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,197,24,0.25); }
+  .btn-ghost {
+    font-family: var(--font); font-size: 14px; font-weight: 500;
+    color: var(--gris); background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: color .2s;
+  }
+  .btn-ghost:hover { color: var(--blanco); }
+  .hero-stats {
+    display: flex; gap: 48px; margin-top: 72px;
+    padding-top: 48px; border-top: 1px solid var(--borde);
+    opacity: 0; animation: fadeUp .6s .8s forwards;
+  }
+  .hero-stat-num { font-family: var(--font-h); font-size: 42px; color: var(--dorado); line-height: 1; }
+  .hero-stat-label { font-size: 12px; color: var(--gris); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── PROBLEMA ── */
+  #problema { padding: 120px 48px; border-top: 1px solid var(--borde); }
+  .section-label { font-family: var(--font-m); font-size: 11px; color: var(--dorado); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px; }
+  .section-title { font-family: var(--font-h); font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: 1px; max-width: 700px; margin-bottom: 64px; }
+  .problema-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .problema-item {
+    padding: 40px 36px; background: rgba(255,255,255,0.02);
+    border: 1px solid var(--borde); position: relative; overflow: hidden; transition: background .3s;
+  }
+  .problema-item:hover { background: rgba(255,255,255,0.04); }
+  .problema-item::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--dorado), transparent); opacity: 0; transition: opacity .3s;
+  }
+  .problema-item:hover::before { opacity: 1; }
+  .problema-num { font-family: var(--font-h); font-size: 80px; color: rgba(245,197,24,0.06); line-height: 1; margin-bottom: -20px; }
+  .problema-text { font-size: 20px; font-weight: 500; margin-bottom: 12px; }
+  .problema-sub { font-size: 14px; color: var(--gris); line-height: 1.6; }
+
+  /* ── SOLUCIÓN ── */
+  #solucion { padding: 120px 48px; background: rgba(255,255,255,0.015); border-top: 1px solid var(--borde); }
+  .solucion-header { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: end; margin-bottom: 80px; }
+  .solucion-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .feature-card {
+    padding: 32px 28px; background: rgba(27,58,107,0.3);
+    border: 1px solid rgba(27,58,107,0.6); border-radius: 12px; transition: border-color .3s, transform .2s;
+  }
+  .feature-card:hover { border-color: rgba(245,197,24,0.3); transform: translateY(-3px); }
+  .feature-icon { font-size: 28px; margin-bottom: 16px; display: block; }
+  .feature-title { font-family: var(--font-h); font-size: 22px; letter-spacing: 1px; margin-bottom: 8px; }
+  .feature-desc { font-size: 13px; color: var(--gris); line-height: 1.6; }
+
+  /* ── PLANES ── */
+  #planes { padding: 120px 48px; border-top: 1px solid var(--borde); }
+  .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 64px; }
+  .plan-card { padding: 44px 36px; border: 1px solid var(--borde); position: relative; }
+  .plan-card.featured { border-color: rgba(245,197,24,0.3); background: rgba(245,197,24,0.03); }
+  .plan-card.featured::before {
+    content: 'MÁS ELEGIDO'; position: absolute; top: 16px; right: 16px;
+    font-family: var(--font-m); font-size: 9px; color: var(--dorado);
+    letter-spacing: 2px; padding: 4px 8px; border: 1px solid rgba(245,197,24,0.3); border-radius: 4px;
+  }
+  .plan-name { font-family: var(--font-h); font-size: 32px; letter-spacing: 2px; margin-bottom: 8px; }
+  .plan-price { font-family: var(--font-h); font-size: 52px; color: var(--dorado); line-height: 1; margin-bottom: 4px; }
+  .plan-price span { font-family: var(--font); font-size: 14px; color: var(--gris); font-weight: 300; }
+  .plan-promo { font-size: 12px; color: var(--dorado); margin-bottom: 28px; font-family: var(--font-m); opacity: 0.8; min-height: 18px; }
+  .plan-divider { height: 1px; background: var(--borde); margin-bottom: 28px; }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
+  .plan-features li { font-size: 14px; color: rgba(244,242,238,0.65); display: flex; align-items: center; gap: 10px; }
+  .plan-features li::before { content: '✓'; color: var(--dorado); font-weight: 700; }
+  .btn-plan {
+    width: 100%; padding: 12px; font-family: var(--font-m); font-size: 12px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: 7px; transition: all .2s;
+  }
+  .btn-plan-outline { background: transparent; border: 1px solid var(--borde); color: var(--gris); }
+  .btn-plan-outline:hover { border-color: var(--dorado); color: var(--dorado); }
+  .btn-plan-filled { background: var(--dorado); border: none; color: var(--azul); font-weight: 600; }
+  .btn-plan-filled:hover { background: #FFD740; }
+
+  /* ── CONTACTO ── */
+  #contacto { padding: 120px 48px; border-top: 1px solid var(--borde); display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+  .contact-title { font-family: var(--font-h); font-size: clamp(40px, 5vw, 72px); line-height: 0.95; letter-spacing: 1px; margin-bottom: 20px; }
+  .contact-sub { font-size: 15px; color: var(--gris); line-height: 1.7; }
+  .contact-promise { margin-top: 32px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: rgba(244,242,238,0.5); }
+  .contact-promise::before { content: ''; width: 24px; height: 1px; background: var(--dorado); }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-family: var(--font-m); font-size: 10px; color: var(--gris); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .form-input {
+    width: 100%; padding: 13px 16px; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--borde); border-radius: 7px;
+    color: var(--blanco); font-family: var(--font); font-size: 14px;
+    transition: border-color .2s; outline: none;
+  }
+  .form-input:focus { border-color: rgba(245,197,24,0.4); }
+  .form-input::placeholder { color: rgba(138,143,154,0.4); }
+  .btn-submit {
+    width: 100%; padding: 15px; background: var(--dorado); border: none; border-radius: 8px;
+    font-family: var(--font-m); font-size: 13px; font-weight: 500; color: var(--azul);
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
+    transition: background .2s, transform .15s;
+  }
+  .btn-submit:hover { background: #FFD740; transform: translateY(-2px); }
+  .form-success { display: none; text-align: center; padding: 48px 20px; }
+  .form-success-icon { font-size: 40px; margin-bottom: 16px; }
+  .form-success-title { font-family: var(--font-h); font-size: 28px; color: var(--dorado); margin-bottom: 8px; letter-spacing: 1px; }
+  .form-success-sub { font-size: 14px; color: var(--gris); }
+
+  /* ── LOGIN MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .login-modal {
+    background: #0F2440; border: 1px solid var(--borde);
+    border-radius: 16px; padding: 48px 40px; width: 100%; max-width: 420px;
+    position: relative;
+    animation: fadeUp .3s forwards;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--gris);
+    font-size: 20px; cursor: pointer; padding: 4px 8px;
+    transition: color .2s;
+  }
+  .modal-close:hover { color: var(--blanco); }
+  .modal-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+  .modal-logo-icon {
+    width: 32px; height: 32px; background: var(--dorado); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-h); font-size: 18px; color: var(--azul);
+  }
+  .modal-logo-text { font-family: var(--font-h); font-size: 20px; letter-spacing: 3px; }
+  .modal-title { font-family: var(--font-h); font-size: 28px; letter-spacing: 1px; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--gris); margin-bottom: 28px; }
+  .login-error {
+    display: none; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 7px; padding: 10px 14px; font-size: 13px; color: #fca5a5; margin-bottom: 16px;
+  }
+  .btn-login-submit {
+    width: 100%; padding: 14px; background: var(--dorado); border: none; border-radius: 8px;
+    font-family: var(--font-m); font-size: 13px; font-weight: 500; color: var(--azul);
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; margin-top: 8px;
+    transition: background .2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-login-submit:hover { background: #FFD740; }
+  .btn-login-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-spinner {
+    width: 16px; height: 16px; border: 2px solid var(--azul);
+    border-top-color: transparent; border-radius: 50%;
+    animation: spin .6s linear infinite; display: none;
+  }
+
+  /* ── FOOTER ── */
+  footer { padding: 40px 48px; border-top: 1px solid var(--borde); display: flex; align-items: center; justify-content: space-between; }
+  .footer-logo { font-family: var(--font-h); font-size: 18px; letter-spacing: 3px; color: var(--gris); }
+  .footer-copy { font-size: 12px; color: rgba(138,143,154,0.5); }
+
+  /* ── REVEAL ── */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity .7s, transform .7s; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    nav { padding: 16px 20px; }
+    #hero { padding: 100px 20px 60px; }
+    .hero-stats { gap: 28px; flex-wrap: wrap; }
+    #problema, #solucion, #planes { padding: 80px 20px; }
+    .problema-grid, .solucion-features, .planes-grid { grid-template-columns: 1fr; }
+    .solucion-header { grid-template-columns: 1fr; gap: 40px; }
+    #contacto { grid-template-columns: 1fr; gap: 48px; padding: 80px 20px; }
+    footer { padding: 32px 20px; flex-direction: column; gap: 12px; text-align: center; }
+    .login-modal { margin: 20px; padding: 36px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <div class="nav-logo-icon">S</div>
+    <span class="nav-logo-text">SQUADRA</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn-nav-login" onclick="openLogin()">Iniciar sesión</button>
+    <button class="btn-nav-demo" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Quiero una demo</button>
+  </div>
+</nav>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="login-modal">
+    <button class="modal-close" onclick="closeLogin()">✕</button>
+    <div class="modal-logo">
+      <div class="modal-logo-icon">S</div>
+      <span class="modal-logo-text">SQUADRA</span>
+    </div>
+    <div class="modal-title">INGRESAR</div>
+    <div class="modal-sub">Accedé a tu panel de gestión</div>
+    <div class="login-error" id="loginError"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="loginEmail" placeholder="hc@tuclub.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña</label>
+      <input type="password" class="form-input" id="loginPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login-submit" id="loginBtn" onclick="doLogin()">
+      <span id="loginBtnText">Ingresar al sistema</span>
+      <div class="login-spinner" id="loginSpinner"></div>
+    </button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-eyebrow">Tecnología para el rugby argentino</div>
+  <h1 class="hero-title">LA PLATAFORMA DE<br>GESTIÓN PARA<br><em>PLANTELES</em><br>SUPERIORES</h1>
+  <p class="hero-sub">
+    <strong>Semana tipo, wellness, planificación y comunicación</strong> — todo en un sistema. Más una app para que cada jugador tenga su información en el celular.
+  </p>
+  <div class="hero-ctas">
+    <button class="btn-primary" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Quiero una demo</button>
+    <button class="btn-ghost" onclick="document.getElementById('solucion').scrollIntoView({behavior:'smooth'})">
+      Ver el sistema
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="hero-stats">
+    <div><div class="hero-stat-num">6</div><div class="hero-stat-label">Módulos de gestión</div></div>
+    <div><div class="hero-stat-num">100%</div><div class="hero-stat-label">Desde el celular</div></div>
+    <div><div class="hero-stat-num">1</div><div class="hero-stat-label">Sistema. Todo integrado.</div></div>
+  </div>
+</section>
+
+<!-- PROBLEMA -->
+<section id="problema">
+  <div class="section-label reveal">El problema</div>
+  <h2 class="section-title reveal">Así gestionan hoy la mayoría de los clubes.</h2>
+  <div class="problema-grid">
+    <div class="problema-item reveal">
+      <div class="problema-num">01</div>
+      <div class="problema-text">Grupos de WhatsApp para todo</div>
+      <div class="problema-sub">La semana tipo, los cambios de horario, el wellness, los videos — todo mezclado en el mismo chat. Nadie encuentra nada.</div>
+    </div>
+    <div class="problema-item reveal">
+      <div class="problema-num">02</div>
+      <div class="problema-text">Planillas Excel que nadie actualiza</div>
+      <div class="problema-sub">El estado físico de los jugadores, los pesos máximos, las lesiones — datos críticos dispersos en archivos siempre desactualizados.</div>
+    </div>
+    <div class="problema-item reveal">
+      <div class="problema-num">03</div>
+      <div class="problema-text">Los jugadores no tienen información</div>
+      <div class="problema-sub">No saben qué entrenan mañana, no registran su progreso en el gym, no pueden reportar cómo están físicamente.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUCIÓN -->
+<section id="solucion">
+  <div class="solucion-header">
+    <div>
+      <div class="section-label reveal">La solución</div>
+      <h2 class="section-title reveal">Un sistema pensado para el rugby de verdad.</h2>
+    </div>
+    <p class="reveal" style="font-size:16px;color:var(--gris);line-height:1.7;align-self:end">
+      Squadra centraliza la gestión del plantel en una sola plataforma. El cuerpo técnico tiene control total. Los jugadores tienen su propia app.
+    </p>
+  </div>
+  <div class="solucion-features">
+    <div class="feature-card reveal">
+      <span class="feature-icon">📅</span>
+      <div class="feature-title">Semana Tipo</div>
+      <div class="feature-desc">Planificá el microciclo completo. Cada jugador ve solo lo que le corresponde según su división y puesto.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">❤️</span>
+      <div class="feature-title">Wellness</div>
+      <div class="feature-desc">Los jugadores reportan su estado físico y mental cada día. El cuerpo técnico recibe alertas ante señales de riesgo.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">💪</span>
+      <div class="feature-title">Gimnasio</div>
+      <div class="feature-desc">Rutinas asignadas por el PF, pesos máximos personales con calculadora de porcentajes. Todo en el celular del jugador.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🎥</span>
+      <div class="feature-title">Videos y Comunicados</div>
+      <div class="feature-desc">Clips tácticos y avisos del cuerpo técnico llegan directo al jugador. Sin WhatsApp, sin ruido.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANES -->
+<section id="planes">
+  <div class="section-label reveal">Planes</div>
+  <h2 class="section-title reveal">Elegí el plan de tu club.</h2>
+  <div class="planes-grid">
+    <div class="plan-card reveal">
+      <div class="plan-name">STARTER</div>
+      <div class="plan-price">$99 <span>usd/mes</span></div>
+      <div class="plan-promo">&nbsp;</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Hasta 25 jugadores en el sistema</li>
+        <li>25 jugadores con acceso a la app</li>
+        <li>Todos los módulos incluidos</li>
+        <li>Soporte por WhatsApp</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Empezar</button>
+    </div>
+    <div class="plan-card featured reveal">
+      <div class="plan-name">PRO</div>
+      <div class="plan-price">$199 <span>usd/mes</span></div>
+      <div class="plan-promo">🎉 Primeros 3 meses a $149</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Hasta 70 jugadores en el sistema</li>
+        <li>70 jugadores con acceso a la app</li>
+        <li>Todos los módulos incluidos</li>
+        <li>Soporte prioritario</li>
+      </ul>
+      <button class="btn-plan btn-plan-filled" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Empezar</button>
+    </div>
+    <div class="plan-card reveal">
+      <div class="plan-name">FULL</div>
+      <div class="plan-price">$250 <span>usd/mes</span></div>
+      <div class="plan-promo">&nbsp;</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Plantel completo sin límite</li>
+        <li>Todos los jugadores con app</li>
+        <li>Todos los módulos incluidos</li>
+        <li>Soporte dedicado</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Empezar</button>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto">
+  <div>
+    <div class="section-label reveal">Contacto</div>
+    <h2 class="contact-title reveal">¿LISTO PARA<br>DAR EL<br><em style="color:var(--dorado);font-style:normal">SALTO?</em></h2>
+    <p class="contact-sub reveal">Coordinamos una demo de 30 minutos donde te mostramos el sistema con datos reales. Sin compromiso.</p>
+    <div class="contact-promise reveal">Te contactamos en menos de 24 horas hábiles.</div>
+  </div>
+  <div class="reveal">
+    <div id="contactForm">
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-input" id="formNombre" placeholder="Tu nombre">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Club</label>
+        <input type="text" class="form-input" id="formClub" placeholder="Nombre del club">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="formEmail" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp</label>
+        <input type="tel" class="form-input" id="formWa" placeholder="+54 9 11 XXXX XXXX">
+      </div>
+      <button class="btn-submit" onclick="enviarFormulario()">Quiero una demo →</button>
+    </div>
+    <div class="form-success" id="formSuccess">
+      <div class="form-success-icon">🏉</div>
+      <div class="form-success-title">¡RECIBIDO!</div>
+      <div class="form-success-sub">Te contactamos en las próximas 24 horas hábiles para coordinar la demo.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">SQUADRA</div>
+  <div class="footer-copy">© 2026 Squadra. Gestión de planteles superiores de rugby.</div>
+</footer>
+
+<script>
+const SUPABASE_URL  = 'https://ezqqomzkmoousrhkdbob.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6cXFvbXprbW9vdXNyaGtkYm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDk2OTEsImV4cCI6MjA4ODkyNTY5MX0.HKGW-vwY7sxoybakwST3KOoh2UgCq7kdURjiZwGRbYU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── Check if already logged in ──
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) routeUser(session.user);
+})();
+
+// ── Nav scroll ──
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// ── Reveal on scroll ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Login modal ──
+function openLogin() {
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(() => document.getElementById('loginEmail').focus(), 100);
+}
+function closeLogin() {
+  document.getElementById('loginModal').classList.remove('open');
+  document.getElementById('loginError').style.display = 'none';
+}
+document.getElementById('loginModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLogin();
+});
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw    = document.getElementById('loginPw').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn   = document.getElementById('loginBtn');
+  const txt   = document.getElementById('loginBtnText');
+  const spin  = document.getElementById('loginSpinner');
+
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Completá email y contraseña.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; txt.textContent = 'Verificando...'; spin.style.display = 'block';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+
+  btn.disabled = false; txt.textContent = 'Ingresar al sistema'; spin.style.display = 'none';
+
+  if (error) {
+    errEl.textContent = 'Email o contraseña incorrectos.';
+    errEl.style.display = 'block';
+    return;
+  }
+  routeUser(data.user);
+}
+
+async function routeUser(user) {
+  // Get user role from usuarios table
+  const { data: usuario } = await sb
+    .from('usuarios')
+    .select('rol, club_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!usuario) {
+    // Could be a player — route to portal
+    window.location.href = 'portal.html';
+    return;
+  }
+  // Staff/HC — route to CRM
+  window.location.href = 'crm.html';
+}
+
+// ── Contact form ──
+async function enviarFormulario() {
+  const nombre = document.getElementById('formNombre').value.trim();
+  const club   = document.getElementById('formClub').value.trim();
+  const email  = document.getElementById('formEmail').value.trim();
+  const wa     = document.getElementById('formWa').value.trim();
+  if (!nombre || !club || !email) { alert('Completá nombre, club y email.'); return; }
+
+  // Save lead to Supabase (optional table) or just show success
+  document.getElementById('contactForm').style.display = 'none';
+  document.getElementById('formSuccess').style.display = 'block';
+}
+</script>
+</body>
+</html>
